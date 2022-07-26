@@ -1,4 +1,4 @@
-# obs-random-text-lua
+# Random Text Lua
 **A plugin to display a random string from a list or sequential numbers.**  
 [![MIT License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
