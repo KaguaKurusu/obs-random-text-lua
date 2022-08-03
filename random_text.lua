@@ -53,6 +53,10 @@ Data = {
 	time_to_display = 2,
 	roll_delay = 42,
 	deceleration = 50,
+	with_bgm = false,
+	bgm_path = "",
+	bgm_source = nil,
+	bgm_index = 62,
 
 	-- Play Sound
 	play_sound = false,
@@ -139,6 +143,10 @@ function animate_selection(settings, source, lines)
 	local deceleration = 0
 	local speed_modification = 1
 
+	if Data.with_bgm then
+		start_bgm()
+	end
+
 	math.randomseed(obs.os_gettime_ns())
 	while time_limit > 0 do
 		local random_index = math.random(lines_count)
@@ -151,6 +159,10 @@ function animate_selection(settings, source, lines)
 		deceleration = deceleration + deceleration_default
 
 		obs.os_sleep_ms(current_sleep_time * 1000)
+	end
+
+	if Data.with_bgm then
+		stop_bgm()
 	end
 end
 
@@ -165,6 +177,29 @@ function play_sound()
 	obs.obs_data_release(s)
 
 	obs.obs_set_output_source(Data.output_index, Data.media_source)
+end
+
+function start_bgm()
+	if Data.bgm_source == nil then
+		Data.bgm_source = obs.obs_source_create_private("ffmpeg_source", "Global Media Source", nil)
+	end
+	s = obs.obs_data_create()
+	obs.obs_data_set_string(s, "local_file", Data.bgm_path)
+	obs.obs_data_set_bool(s, "looping", true)
+	obs.obs_source_update(Data.bgm_source, s)
+	obs.obs_source_set_monitoring_type(Data.bgm_source, obs.OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT)
+	obs.obs_data_release(s)
+
+	obs.obs_set_output_source(Data.bgm_index, Data.bgm_source)
+end
+
+function stop_bgm()
+	s = obs.obs_data_create()
+	obs.obs_data_set_string(s, "local_file", "")
+	obs.obs_source_update(Data.bgm_source, s)
+	obs.obs_data_release(s)
+
+	obs.obs_set_output_source(Data.bgm_index, Data.bgm_source)
 end
 
 function on_get_random_click()
@@ -208,6 +243,8 @@ function script_update(settings)
 	Data.deceleration = obs.obs_data_get_int(settings, "deceleration")
 	Data.time_to_display = obs.obs_data_get_int(settings, "time_to_display")
 	Data.roll_delay = obs.obs_data_get_int(settings, "roll_delay")
+	Data.with_bgm = obs.obs_data_get_bool(settings, "with_bgm")
+	Data.bgm_path = obs.obs_data_get_string(settings, "bgm_path")
 
 	-- Sound
 	Data.play_sound = obs.obs_data_get_bool(settings, "play_sound")
@@ -251,7 +288,10 @@ function script_defaults(settings)
 	obs.obs_data_set_default_int(settings, "roll_delay", Data.roll_delay)
 	obs.obs_data_set_default_int(settings, "time_to_display", Data.time_to_display)
 	obs.obs_data_set_default_int(settings, "deceleration", Data.deceleration)
+	obs.obs_data_set_default_bool(settings, "with_bgm", Data.with_bgm)
 
+	-- Sound
+	obs.obs_data_set_default_bool(settings, "play_sound", Data.play_sound)
 end
 
 function script_properties()
@@ -259,6 +299,7 @@ function script_properties()
 	local props = Data._props
 	local seq_num_props = obs.obs_properties_create()
 	local animation_props = obs.obs_properties_create()
+	local bgm_props = obs.obs_properties_create()
 	local sound_props = obs.obs_properties_create()
 
 	local p = obs.obs_properties_add_list(props, "source", "テキストソース", obs.OBS_COMBO_TYPE_EDITABLE, obs.OBS_COMBO_FORMAT_STRING)
@@ -288,6 +329,8 @@ function script_properties()
 	obs.obs_properties_add_int_slider(animation_props, "time_to_display", "結果表示までの時間(秒)", TIME_TO_DISPLAY["min"], TIME_TO_DISPLAY["max"], TIME_TO_DISPLAY["step"])
 	obs.obs_properties_add_int_slider(animation_props, "roll_delay", "切り替え時間(ミリ秒)", ROLL_DELAY["min"], ROLL_DELAY["max"], ROLL_DELAY["step"])
 	obs.obs_properties_add_int_slider(animation_props, "deceleration", "減速量(ミリ秒)", DECELERATION["min"], DECELERATION["max"], DECELERATION["step"])
+	obs.obs_properties_add_path(bgm_props, "bgm_path", "オーディオファイルのパス", obs.OBS_PATH_FILE, "*.mp3 *.aac *ogg *.wav *.m4a", nil)
+	obs.obs_properties_add_group(animation_props, "with_bgm", "BGM再生を有効にする", obs.OBS_GROUP_CHECKABLE, bgm_props)
 	obs.obs_properties_add_group(props, "with_animation", "アニメーションを有効にする", obs.OBS_GROUP_CHECKABLE, animation_props)
 
 	-- Sound
