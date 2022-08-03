@@ -202,6 +202,14 @@ function stop_bgm()
 	obs.obs_set_output_source(Data.bgm_index, Data.bgm_source)
 end
 
+function get_dir(path)
+	if type(path) == "string" and path ~= "" then
+		return string.match(path, ".*/");
+	else
+		return nul
+	end
+end
+
 function on_get_random_click()
 	update_text()
 end
@@ -329,12 +337,12 @@ function script_properties()
 	obs.obs_properties_add_int_slider(animation_props, "time_to_display", "結果表示までの時間(秒)", TIME_TO_DISPLAY["min"], TIME_TO_DISPLAY["max"], TIME_TO_DISPLAY["step"])
 	obs.obs_properties_add_int_slider(animation_props, "roll_delay", "切り替え時間(ミリ秒)", ROLL_DELAY["min"], ROLL_DELAY["max"], ROLL_DELAY["step"])
 	obs.obs_properties_add_int_slider(animation_props, "deceleration", "減速量(ミリ秒)", DECELERATION["min"], DECELERATION["max"], DECELERATION["step"])
-	obs.obs_properties_add_path(bgm_props, "bgm_path", "オーディオファイルのパス", obs.OBS_PATH_FILE, "*.mp3 *.aac *ogg *.wav *.m4a", nil)
+	obs.obs_properties_add_path(bgm_props, "bgm_path", "オーディオファイルのパス", obs.OBS_PATH_FILE, "オーディオファイル(*.mp3 *.aac *ogg *.wav *.m4a);;すべてのファイル(*.*)", get_dir(Data.bgm_path))
 	obs.obs_properties_add_group(animation_props, "with_bgm", "BGM再生を有効にする", obs.OBS_GROUP_CHECKABLE, bgm_props)
 	obs.obs_properties_add_group(props, "with_animation", "アニメーションを有効にする", obs.OBS_GROUP_CHECKABLE, animation_props)
 
 	-- Sound
-	obs.obs_properties_add_path(sound_props, "sound_path", "オーディオファイルのパス", obs.OBS_PATH_FILE, "*.mp3 *.aac *ogg *.wav *.m4a", nil)
+	obs.obs_properties_add_path(sound_props, "sound_path", "オーディオファイルのパス", obs.OBS_PATH_FILE, "オーディオファイル(*.mp3 *.aac *ogg *.wav *.m4a);;すべてのファイル(*.*)", get_dir(Data.sound_path))
 	obs.obs_properties_add_group(props, "play_sound", "結果表示時のオーディオファイル再生を有効にする", obs.OBS_GROUP_CHECKABLE, sound_props)
 
 	obs.obs_properties_add_button(props, "get_random_btn", "抽選", function(obj, btn)
