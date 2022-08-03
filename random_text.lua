@@ -52,7 +52,13 @@ Data = {
 	with_animation = false,
 	time_to_display = 2,
 	roll_delay = 42,
-	deceleration = 50
+	deceleration = 50,
+
+	-- Play Sound
+	play_sound = false,
+	sound_path = "",
+	media_source = nil,
+	output_index = 63
 }
 
 Hotkey = {
@@ -112,6 +118,10 @@ function update_text()
 				obs.os_sleep_ms(Data.blank_time)
 			end
 
+			if Data.play_sound then
+				play_sound()
+			end
+
 			text = Data.lines[index]
 			obs.obs_data_set_string(settings, "text", text)
 			obs.obs_source_update(source, settings)
@@ -142,6 +152,19 @@ function animate_selection(settings, source, lines)
 
 		obs.os_sleep_ms(current_sleep_time * 1000)
 	end
+end
+
+function play_sound()
+	if Data.media_source == nil then
+		Data.media_source = obs.obs_source_create_private("ffmpeg_source", "Global Media Source", nil)
+	end
+	s = obs.obs_data_create()
+	obs.obs_data_set_string(s, "local_file", Data.sound_path)
+	obs.obs_source_update(Data.media_source, s)
+	obs.obs_source_set_monitoring_type(Data.media_source, obs.OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT)
+	obs.obs_data_release(s)
+
+	obs.obs_set_output_source(Data.output_index, Data.media_source)
 end
 
 function on_get_random_click()
@@ -185,6 +208,10 @@ function script_update(settings)
 	Data.deceleration = obs.obs_data_get_int(settings, "deceleration")
 	Data.time_to_display = obs.obs_data_get_int(settings, "time_to_display")
 	Data.roll_delay = obs.obs_data_get_int(settings, "roll_delay")
+
+	-- Sound
+	Data.play_sound = obs.obs_data_get_bool(settings, "play_sound")
+	Data.sound_path = obs.obs_data_get_string(settings, "sound_path")
 
 	local lines = {}
 	if Data.is_seq_num_mode then
@@ -230,9 +257,10 @@ end
 function script_properties()
 	Data._props = obs.obs_properties_create()
 	local props = Data._props
-
 	local seq_num_props = obs.obs_properties_create()
 	local animation_props = obs.obs_properties_create()
+	local sound_props = obs.obs_properties_create()
+
 	local p = obs.obs_properties_add_list(props, "source", "テキストソース", obs.OBS_COMBO_TYPE_EDITABLE, obs.OBS_COMBO_FORMAT_STRING)
 	local sources = obs.obs_enum_sources()
 
@@ -261,6 +289,10 @@ function script_properties()
 	obs.obs_properties_add_int_slider(animation_props, "roll_delay", "切り替え時間(ミリ秒)", ROLL_DELAY["min"], ROLL_DELAY["max"], ROLL_DELAY["step"])
 	obs.obs_properties_add_int_slider(animation_props, "deceleration", "減速量(ミリ秒)", DECELERATION["min"], DECELERATION["max"], DECELERATION["step"])
 	obs.obs_properties_add_group(props, "with_animation", "アニメーションを有効にする", obs.OBS_GROUP_CHECKABLE, animation_props)
+
+	-- Sound
+	obs.obs_properties_add_path(sound_props, "sound_path", "オーディオファイルのパス", obs.OBS_PATH_FILE, "*.mp3 *.aac *ogg *.wav *.m4a", nil)
+	obs.obs_properties_add_group(props, "play_sound", "結果表示時のオーディオファイル再生を有効にする", obs.OBS_GROUP_CHECKABLE, sound_props)
 
 	obs.obs_properties_add_button(props, "get_random_btn", "抽選", function(obj, btn)
 		on_get_random_click()
