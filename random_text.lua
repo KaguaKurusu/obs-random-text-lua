@@ -35,6 +35,12 @@ DECELERATION = {
 
 -- Settings end
 
+MONITORING_TYPES = {
+	{name="モニターオフ", val=obs.OBS_MONITORING_TYPE_NONE},
+	{name="モニターのみ(出力はミュート)", val=obs.OBS_MONITORING_TYPE_MONITOR_ONLY},
+	{name="モニターと出力", val=obs.OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT}
+}
+
 Data = {
 	_props = nil,
 	_settings = nil,
@@ -56,12 +62,14 @@ Data = {
 	with_bgm = false,
 	bgm_path = "",
 	bgm_source = nil,
+	bgm_monitoring_type = obs.OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT,
 	bgm_index = 62,
 
 	-- Play Sound
 	play_sound = false,
 	sound_path = "",
 	media_source = nil,
+	sound_monitoring_type = obs.OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT,
 	output_index = 63
 }
 
@@ -173,7 +181,7 @@ function play_sound()
 	s = obs.obs_data_create()
 	obs.obs_data_set_string(s, "local_file", Data.sound_path)
 	obs.obs_source_update(Data.media_source, s)
-	obs.obs_source_set_monitoring_type(Data.media_source, obs.OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT)
+	obs.obs_source_set_monitoring_type(Data.media_source, Data.sound_monitoring_type)
 	obs.obs_data_release(s)
 
 	obs.obs_set_output_source(Data.output_index, Data.media_source)
@@ -187,7 +195,7 @@ function start_bgm()
 	obs.obs_data_set_string(s, "local_file", Data.bgm_path)
 	obs.obs_data_set_bool(s, "looping", true)
 	obs.obs_source_update(Data.bgm_source, s)
-	obs.obs_source_set_monitoring_type(Data.bgm_source, obs.OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT)
+	obs.obs_source_set_monitoring_type(Data.bgm_source, Data.bgm_monitoring_type)
 	obs.obs_data_release(s)
 
 	obs.obs_set_output_source(Data.bgm_index, Data.bgm_source)
@@ -253,10 +261,12 @@ function script_update(settings)
 	Data.roll_delay = obs.obs_data_get_int(settings, "roll_delay")
 	Data.with_bgm = obs.obs_data_get_bool(settings, "with_bgm")
 	Data.bgm_path = obs.obs_data_get_string(settings, "bgm_path")
+	Data.bgm_monitoring_type = obs.obs_data_get_string(settings, "bgm_monitoring_type")
 
 	-- Sound
 	Data.play_sound = obs.obs_data_get_bool(settings, "play_sound")
 	Data.sound_path = obs.obs_data_get_string(settings, "sound_path")
+	Data.sound_monitoring_type = obs.obs_data_get_string(settings, "sound_monitoring_type")
 
 	local lines = {}
 	if Data.is_seq_num_mode then
@@ -297,9 +307,11 @@ function script_defaults(settings)
 	obs.obs_data_set_default_int(settings, "time_to_display", Data.time_to_display)
 	obs.obs_data_set_default_int(settings, "deceleration", Data.deceleration)
 	obs.obs_data_set_default_bool(settings, "with_bgm", Data.with_bgm)
+	obs.obs_data_set_default_string(settings, "bgm_monitoring_type", Data.bgm_monitoring_type)
 
 	-- Sound
 	obs.obs_data_set_default_bool(settings, "play_sound", Data.play_sound)
+	obs.obs_data_set_default_string(settings, "sound_monitoring_type", Data.sound_monitoring_type)
 end
 
 function script_properties()
@@ -338,11 +350,19 @@ function script_properties()
 	obs.obs_properties_add_int_slider(animation_props, "roll_delay", "切り替え時間(ミリ秒)", ROLL_DELAY["min"], ROLL_DELAY["max"], ROLL_DELAY["step"])
 	obs.obs_properties_add_int_slider(animation_props, "deceleration", "減速量(ミリ秒)", DECELERATION["min"], DECELERATION["max"], DECELERATION["step"])
 	obs.obs_properties_add_path(bgm_props, "bgm_path", "オーディオファイルのパス", obs.OBS_PATH_FILE, "オーディオファイル(*.mp3 *.aac *ogg *.wav *.m4a);;すべてのファイル(*.*)", get_dir(Data.bgm_path))
+	local bgm_monitoring_type = obs.obs_properties_add_list(bgm_props, "bgm_monitoring_type", "音声モニタリング", obs.OBS_COMBO_TYPE_LIST, obs.OBS_COMBO_FORMAT_STRING)
+	for _, types in ipairs(MONITORING_TYPES) do
+		obs.obs_property_list_add_string(bgm_monitoring_type, types.name, types.val)
+	end
 	obs.obs_properties_add_group(animation_props, "with_bgm", "BGM再生を有効にする", obs.OBS_GROUP_CHECKABLE, bgm_props)
 	obs.obs_properties_add_group(props, "with_animation", "アニメーションを有効にする", obs.OBS_GROUP_CHECKABLE, animation_props)
 
 	-- Sound
 	obs.obs_properties_add_path(sound_props, "sound_path", "オーディオファイルのパス", obs.OBS_PATH_FILE, "オーディオファイル(*.mp3 *.aac *ogg *.wav *.m4a);;すべてのファイル(*.*)", get_dir(Data.sound_path))
+	local sound_monitoring_type = obs.obs_properties_add_list(sound_props, "sound_monitoring_type", "音声モニタリング", obs.OBS_COMBO_TYPE_LIST, obs.OBS_COMBO_FORMAT_STRING)
+	for _, types in ipairs(MONITORING_TYPES) do
+		obs.obs_property_list_add_string(sound_monitoring_type, types.name, types.val)
+	end
 	obs.obs_properties_add_group(props, "play_sound", "結果表示時のオーディオファイル再生を有効にする", obs.OBS_GROUP_CHECKABLE, sound_props)
 
 	obs.obs_properties_add_button(props, "get_random_btn", "抽選", function(obj, btn)
