@@ -63,6 +63,7 @@ Data = {
 	bgm_path = "",
 	bgm_source = nil,
 	bgm_monitoring_type = obs.OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT,
+	bgm_volume = 1,
 	bgm_index = 62,
 
 	-- Play Sound
@@ -70,6 +71,7 @@ Data = {
 	sound_path = "",
 	media_source = nil,
 	sound_monitoring_type = obs.OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT,
+	sound_volume = 1,
 	output_index = 63
 }
 
@@ -182,6 +184,7 @@ function play_sound()
 	obs.obs_data_set_string(s, "local_file", Data.sound_path)
 	obs.obs_source_update(Data.media_source, s)
 	obs.obs_source_set_monitoring_type(Data.media_source, Data.sound_monitoring_type)
+	obs.obs_source_set_volume(Data.media_source, Data.sound_volume)
 	obs.obs_data_release(s)
 
 	obs.obs_set_output_source(Data.output_index, Data.media_source)
@@ -196,6 +199,7 @@ function start_bgm()
 	obs.obs_data_set_bool(s, "looping", true)
 	obs.obs_source_update(Data.bgm_source, s)
 	obs.obs_source_set_monitoring_type(Data.bgm_source, Data.bgm_monitoring_type)
+	obs.obs_source_set_volume(Data.bgm_source, Data.bgm_volume)
 	obs.obs_data_release(s)
 
 	obs.obs_set_output_source(Data.bgm_index, Data.bgm_source)
@@ -262,11 +266,13 @@ function script_update(settings)
 	Data.with_bgm = obs.obs_data_get_bool(settings, "with_bgm")
 	Data.bgm_path = obs.obs_data_get_string(settings, "bgm_path")
 	Data.bgm_monitoring_type = obs.obs_data_get_string(settings, "bgm_monitoring_type")
+	Data.bgm_volume = obs.obs_data_get_double(settings, "bgm_volume")
 
 	-- Sound
 	Data.play_sound = obs.obs_data_get_bool(settings, "play_sound")
 	Data.sound_path = obs.obs_data_get_string(settings, "sound_path")
 	Data.sound_monitoring_type = obs.obs_data_get_string(settings, "sound_monitoring_type")
+	Data.sound_volume = obs.obs_data_get_double(settings, "sound_volume")
 
 	local lines = {}
 	if Data.is_seq_num_mode then
@@ -308,10 +314,12 @@ function script_defaults(settings)
 	obs.obs_data_set_default_int(settings, "deceleration", Data.deceleration)
 	obs.obs_data_set_default_bool(settings, "with_bgm", Data.with_bgm)
 	obs.obs_data_set_default_string(settings, "bgm_monitoring_type", Data.bgm_monitoring_type)
+	obs.obs_data_set_default_double(settings, "bgm_volume", Data.bgm_volume)
 
 	-- Sound
 	obs.obs_data_set_default_bool(settings, "play_sound", Data.play_sound)
 	obs.obs_data_set_default_string(settings, "sound_monitoring_type", Data.sound_monitoring_type)
+	obs.obs_data_set_default_double(settings, "sound_volume", Data.sound_volume)
 end
 
 function script_properties()
@@ -354,6 +362,7 @@ function script_properties()
 	for _, types in ipairs(MONITORING_TYPES) do
 		obs.obs_property_list_add_string(bgm_monitoring_type, types.name, types.val)
 	end
+	obs.obs_properties_add_float(bgm_props, "bgm_volume", "音量", 0, 100, 0.1)
 	obs.obs_properties_add_group(animation_props, "with_bgm", "BGM再生を有効にする", obs.OBS_GROUP_CHECKABLE, bgm_props)
 	obs.obs_properties_add_group(props, "with_animation", "アニメーションを有効にする", obs.OBS_GROUP_CHECKABLE, animation_props)
 
@@ -363,6 +372,7 @@ function script_properties()
 	for _, types in ipairs(MONITORING_TYPES) do
 		obs.obs_property_list_add_string(sound_monitoring_type, types.name, types.val)
 	end
+	obs.obs_properties_add_float(sound_props, "sound_volume", "音量", 0, 100, 0.1)
 	obs.obs_properties_add_group(props, "play_sound", "結果表示時のオーディオファイル再生を有効にする", obs.OBS_GROUP_CHECKABLE, sound_props)
 
 	obs.obs_properties_add_button(props, "get_random_btn", "抽選", function(obj, btn)
