@@ -214,7 +214,7 @@ function get_dir(path)
 	if type(path) == "string" and path ~= "" then
 		return string.match(path, ".*/");
 	else
-		return nul
+		return nil
 	end
 end
 
